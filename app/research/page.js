@@ -1,12 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createBrowserClient } from '@supabase/ssr';
+
+function getSupabase() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  );
+}
 
 export default function ResearchPage() {
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [user, setUser] = useState(null);
   const [question, setQuestion] = useState('');
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const supabase = getSupabase();
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user ?? null);
+      setSessionChecked(true);
+    });
+  }, []);
 
   async function runResearch(event) {
     event.preventDefault();
@@ -30,14 +48,31 @@ export default function ResearchPage() {
     }
   }
 
+  if (!sessionChecked) {
+    return <main className="container"><section className="hero"><p>Checking your session…</p></section></main>;
+  }
+
+  if (!user) {
+    return (
+      <main className="container">
+        <section className="hero">
+          <p className="eyebrow">RESEARCH AGENT · V0.1</p>
+          <h1>Sign in to continue</h1>
+          <p className="subtitle">Your research runs are private and protected by Supabase authentication.</p>
+          <a href="/auth" style={{ display: 'inline-block', marginTop: 20, padding: '14px 20px', borderRadius: 10, textDecoration: 'none', border: '1px solid currentColor' }}>
+            Sign in with email
+          </a>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="container">
       <section className="hero">
         <p className="eyebrow">RESEARCH AGENT · V0.1</p>
         <h1>Research Agent</h1>
-        <p className="subtitle">
-          Ask a research question. The agent uses the configured open-source model and never invents sources.
-        </p>
+        <p className="subtitle">Signed in as {user.email}. Ask a research question and run the configured open-source model.</p>
         <form onSubmit={runResearch} style={{ maxWidth: 760, margin: '24px auto 0' }}>
           <textarea
             aria-label="Research question"
