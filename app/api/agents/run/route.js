@@ -21,7 +21,8 @@ export async function POST(request) {
     if (runError) throw runError;
     runId = run.id;
 
-    const result = await runResearchAgent({ question: input.trim(), sources: [], liveSearch: true });
+    const config = agent.config && typeof agent.config === 'object' ? agent.config : {};
+    const result = await runResearchAgent({ question: input.trim(), sources: [], liveSearch: false, config });
     const { error: completeError } = await supabase.from('agent_runs').update({ status: 'completed', output: { result }, completed_at: new Date().toISOString() }).eq('id', runId).eq('owner_id', user.id);
     if (completeError) throw completeError;
 
