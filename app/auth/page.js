@@ -8,7 +8,8 @@ export default function AuthPage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function signIn() {
+  async function signIn(event) {
+    event.preventDefault();
     setLoading(true);
     setMessage('');
     const supabase = createSupabaseClient();
@@ -17,7 +18,12 @@ export default function AuthPage() {
       setLoading(false);
       return;
     }
-    const { error } = await supabase.auth.signInWithOtp({ email });
+
+    const redirectTo = `${window.location.origin}/auth/callback`;
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: redirectTo },
+    });
     setMessage(error ? error.message : 'Check your email for the sign-in link.');
     setLoading(false);
   }
@@ -28,19 +34,20 @@ export default function AuthPage() {
         <p className="eyebrow">AUTHENTICATION</p>
         <h1>Sign in</h1>
         <p className="subtitle">Use your email to receive a secure Supabase magic link.</p>
-        <div style={{ display: 'flex', gap: 12, maxWidth: 520, margin: '24px auto 0' }}>
+        <form onSubmit={signIn} style={{ display: 'flex', gap: 12, maxWidth: 520, margin: '24px auto 0' }}>
           <input
             aria-label="Email address"
             type="email"
+            required
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={{ flex: 1, padding: 14, borderRadius: 10, border: '1px solid #ccc' }}
           />
-          <button onClick={signIn} disabled={loading || !email} style={{ padding: '14px 18px', borderRadius: 10, border: 0, cursor: 'pointer' }}>
+          <button type="submit" disabled={loading} style={{ padding: '14px 18px', borderRadius: 10, border: 0, cursor: 'pointer' }}>
             {loading ? 'Sending…' : 'Send link'}
           </button>
-        </div>
+        </form>
         {message && <p style={{ marginTop: 18 }}>{message}</p>}
       </section>
     </main>
