@@ -79,7 +79,17 @@ export default function AgentsPage() {
             <button type="submit" style={{ padding: 14, borderRadius: 10, border: 0, cursor: 'pointer' }}>Create agent</button>
           </form>
           <section className="grid">
-            {agents.map((agent) => <article key={agent.id}><strong>{agent.name}</strong><span>{agent.description || 'No description'}</span></article>)}
+            {agents.map((agent) => (
+              <article key={agent.id}>
+                <strong>{agent.name}</strong>
+                <span>{agent.description || 'No description'}</span>
+                {agent.name.toLowerCase() === 'research agent' || agent.name.toLowerCase() === 'research' ? (
+                  <a href={`/research?agent=${agent.id}`} style={{ marginTop: 10, display: 'inline-block' }}>Run agent →</a>
+                ) : (
+                  <span style={{ marginTop: 10 }}>Agent runner coming next</span>
+                )}
+              </article>
+            ))}
           </section>
           {message && <p style={{ textAlign: 'center', marginTop: 20 }}>{message}</p>}
         </>
