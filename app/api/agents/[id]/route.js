@@ -10,7 +10,9 @@ export async function GET(request, { params }) {
     : await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, error: 'Authentication required.' }, { status: 401 });
 
-  const { data, error } = await supabase.from('agents').select('id, name, description, config').eq('id', params.id).eq('owner_id', user.id).single();
+  const { id } = await params;
+  if (!id) return NextResponse.json({ ok: false, error: 'Agent id is required.' }, { status: 400 });
+  const { data, error } = await supabase.from('agents').select('id, name, description, config').eq('id', id).eq('owner_id', user.id).single();
   if (error || !data) return NextResponse.json({ ok: false, error: 'Agent not found.' }, { status: 404 });
   return NextResponse.json({ ok: true, agent: data });
 }
