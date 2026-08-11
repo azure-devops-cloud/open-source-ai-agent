@@ -12,29 +12,16 @@ export default function AgentsPage() {
 
   useEffect(() => {
     const supabase = createSupabaseClient();
-    if (!supabase) {
-      setMessage('Supabase is not configured.');
-      return;
-    }
-
+    if (!supabase) { setMessage('Supabase is not configured.'); return; }
     let mounted = true;
     async function load() {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (!mounted) return;
       setUser(currentUser);
-      if (!currentUser) {
-        setMessage('Sign in first to manage your agents.');
-        return;
-      }
-      const { data, error } = await supabase
-        .from('agents')
-        .select('id, name, description, created_at')
-        .order('created_at', { ascending: false });
+      if (!currentUser) { setMessage('Sign in first to manage your agents.'); return; }
+      const { data, error } = await supabase.from('agents').select('id, name, description, created_at').order('created_at', { ascending: false });
       if (error) setMessage(error.message);
-      else {
-        setAgents(data ?? []);
-        setMessage(data?.length ? '' : 'No agents yet. Create your first one.');
-      }
+      else { setAgents(data ?? []); setMessage(data?.length ? '' : 'No agents yet. Create your first one.'); }
     }
     load();
     return () => { mounted = false; };
@@ -44,21 +31,9 @@ export default function AgentsPage() {
     event.preventDefault();
     const supabase = createSupabaseClient();
     if (!supabase || !user || !name.trim()) return;
-
-    const { data, error } = await supabase
-      .from('agents')
-      .insert({ owner_id: user.id, name: name.trim(), description: description.trim() || null })
-      .select('id, name, description, created_at')
-      .single();
-
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-    setAgents((current) => [data, ...current]);
-    setName('');
-    setDescription('');
-    setMessage('Agent created successfully.');
+    const { data, error } = await supabase.from('agents').insert({ owner_id: user.id, name: name.trim(), description: description.trim() || null }).select('id, name, description, created_at').single();
+    if (error) { setMessage(error.message); return; }
+    setAgents((current) => [data, ...current]); setName(''); setDescription(''); setMessage('Agent created successfully.');
   }
 
   return (
@@ -68,7 +43,6 @@ export default function AgentsPage() {
         <h1>Your AI Agents</h1>
         <p className="subtitle">Agents are stored securely in Supabase with Row Level Security.</p>
       </section>
-
       {!user ? (
         <section className="grid"><article><strong>Authentication required</strong><span>{message}</span><a href="/auth">Sign in →</a></article></section>
       ) : (
@@ -83,11 +57,7 @@ export default function AgentsPage() {
               <article key={agent.id}>
                 <strong>{agent.name}</strong>
                 <span>{agent.description || 'No description'}</span>
-                {agent.name.toLowerCase() === 'research agent' || agent.name.toLowerCase() === 'research' ? (
-                  <a href={`/research?agent=${agent.id}`} style={{ marginTop: 10, display: 'inline-block' }}>Run agent →</a>
-                ) : (
-                  <span style={{ marginTop: 10 }}>Agent runner coming next</span>
-                )}
+                <a href={`/agents/${agent.id}`} style={{ marginTop: 10, display: 'inline-block' }}>Run agent →</a>
               </article>
             ))}
           </section>
