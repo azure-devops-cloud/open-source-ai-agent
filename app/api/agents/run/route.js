@@ -4,7 +4,12 @@ import { runResearchAgent } from '../../../../lib/agents/research';
 
 export async function POST(request) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const authorization = request.headers.get('authorization');
+  let userResult = await supabase.auth.getUser();
+  if (!userResult.data.user && authorization?.startsWith('Bearer ')) {
+    userResult = await supabase.auth.getUser(authorization.slice(7));
+  }
+  const user = userResult.data.user;
   if (!user) return NextResponse.json({ ok: false, error: 'Authentication required.' }, { status: 401 });
 
   let runId;
