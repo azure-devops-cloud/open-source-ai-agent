@@ -16,10 +16,12 @@ export default function AgentPage() {
   useEffect(() => {
     async function load() {
       const supabase = createSupabaseClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href = '/auth'; return; }
-      const { data, error: agentError } = await supabase.from('agents').select('id, name, description, config').eq('id', id).eq('owner_id', user.id).single();
-      if (agentError || !data) setError(agentError?.message || 'Agent not found.'); else setAgent(data);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { window.location.href = '/auth'; return; }
+      const response = await fetch(`/api/agents/${id}`, { headers: { authorization: `Bearer ${session.access_token}` } });
+      const data = await response.json();
+      if (!response.ok || !data.ok) setError(data.error || 'Agent not found.');
+      else setAgent(data.agent);
       setLoading(false);
     }
     if (id) load();
