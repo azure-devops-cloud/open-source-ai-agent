@@ -7,6 +7,7 @@ import { createSupabaseClient } from '../../../lib/supabase';
 export default function AgentRunnerPage() {
   const { id } = useParams();
   const [agent, setAgent] = useState(null);
+  const [accessToken, setAccessToken] = useState('');
   const [question, setQuestion] = useState('');
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
@@ -16,9 +17,11 @@ export default function AgentRunnerPage() {
   useEffect(() => {
     async function load() {
       const supabase = createSupabaseClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setError('Authentication required.'); setLoading(false); return; }
-      const { data, error: agentError } = await supabase.from('agents').select('id, name, description, config').eq('id', id).eq('owner_id', user.id).single();
+      if (!supabase) { setError('Supabase is not configured.'); setLoading(false); return; }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { setError('Authentication required. Please sign in again.'); setLoading(false); return; }
+      setAccessToken(session.access_token);
+      const { data, error: agentError } = await supabase.from('agents').select('id, name, description, config').eq('id', id).eq('owner_id', session.user.id).single();
       if (agentError) setError(agentError.message); else setAgent(data);
       setLoading(false);
     }
@@ -29,7 +32,11 @@ export default function AgentRunnerPage() {
     event.preventDefault();
     setRunning(true); setResult(''); setError('');
     try {
-      const response = await fetch('/api/agents/run', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agentId: id, input: question }) });
+      const response = await fetch('/api/agents/run', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ agentId: id, input: question }),
+      });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || 'Agent run failed.');
       setResult(data.result);
@@ -37,8 +44,8 @@ export default function AgentRunnerPage() {
     finally { setRunning(false); }
   }
 
-  if (loading) return <main className="container"><section className="hero"><p>Loading agent…</p></section></main>;
-  if (error && !agent) return <main className="container"><section className="hero"><p className="eyebrow">AGENT RUNNER</p><h1>Unable to load agent</h1><p>{error}</p><a href="/agents">← Back to agents</a></section></main>;
+  if (loading) return <main className="container"><section className="hero"><p>Checking authentication and loading agent…</p></section></main>;
+  if (error && !agent) return <main className="container"><section className="hero"><p className="eyebrow">AGENT RUNNER</p><h1>Unable to load agent</h1><p>{error}</p><a href="/auth">Sign in →</a></section></main>;
 
   return <main className="container"><section className="hero">
     <p className="eyebrow">AGENT RUNNER</p>
